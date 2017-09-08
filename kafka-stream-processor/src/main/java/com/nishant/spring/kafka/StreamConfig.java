@@ -1,14 +1,15 @@
 package com.nishant.spring.kafka;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KStreamBuilder;
-import org.apache.kafka.streams.kstream.TimeWindows;
+import org.apache.kafka.streams.kstream.Reducer;
+import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.processor.WallclockTimestampExtractor;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,10 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
 import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration;
 import org.springframework.kafka.core.KStreamBuilderFactoryBean;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Configuration
 @EnableKafka
@@ -40,12 +45,30 @@ public class StreamConfig {
 	@Bean
 	public KStream<Integer, String> kStream(KStreamBuilder kStreamBuilder) {
 		KStream<Integer, String> stream = kStreamBuilder.stream("nishant");
-		stream
-		.mapValues(String::toUpperCase)
-		.to("nishantoutput");
-
+		stream.mapValues(String -> ObjectUpdateMethod(String)).
+		to("nishantoutput");
 		stream.print();
 
 		return stream;
+	}
+	@Bean
+	public ObjectMapper objectMapper() {
+		return new ObjectMapper();
+	}
+	private String ObjectUpdateMethod(String arg0) {
+		String result="";
+		try {
+			KafkaVO kafkaVO=objectMapper().readValue(arg0, KafkaVO.class);
+			KafkaVO kafkaVOUpdate=new KafkaVO();
+			kafkaVOUpdate.setKey(kafkaVO.getKey());
+			kafkaVOUpdate.setName(kafkaVO.getName()+"..Updated after stream processing");
+			kafkaVOUpdate.setDescription(kafkaVO.getDescription()+"..Updated after stream processing");
+			kafkaVOUpdate.setVersion(kafkaVO.getVersion()+"..Updated after stream processing");
+			result=objectMapper().writeValueAsString(kafkaVOUpdate);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return result;
 	}
 }
