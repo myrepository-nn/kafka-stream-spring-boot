@@ -7,8 +7,12 @@ import org.springframework.messaging.handler.annotation.Payload;
 
 public class KafkaReceiver {
 
-	@KafkaListener(id="test",topics="nishantoutput")
-	public void listen(String output) {
-		System.out.println("data received is >>>"+output);
+	@KafkaListener(id="test",topicPattern="nishantoutput")
+	public void listen(@Payload String message,
+			@Header(KafkaHeaders.RECEIVED_MESSAGE_KEY) Integer key,
+			@Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+			@Header(KafkaHeaders.RECEIVED_PARTITION_ID) Integer partition
+			) {
+		System.out.println("received message..."+message+"<<key>>"+key+"<<topic>>"+topic+"<<partition>>"+partition);
 	}
 }
